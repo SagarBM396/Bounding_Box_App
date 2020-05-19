@@ -16,11 +16,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
     }
 
-    public void sendMessage2(View view) {
+    public void captureImage(View view) {
         Intent intent = new Intent(this, Button2Activity.class);
         startActivity(intent);
     }
-    public void sendMessage3(View view) {
+    public void drawBoxes(View view) {
         Intent intent = new Intent(this, DragAndDrawActivity.class);
         startActivity(intent);
     }

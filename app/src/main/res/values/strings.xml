@@ -2,7 +2,8 @@
     <string name="app_name">My First App</string>
     <string name="edit_message">Enter a message</string>
     <string name="button_send">Send</string>
-    <string name="button_example">Second button</string>
+    <string name="button_example">Get Image</string>
     <string name="capture_image">Capture Image</string>
     <string name="button_undo">Undo</string>
+    <string name="drag_and_draw">Drag And Draw</string>
 </resources>
