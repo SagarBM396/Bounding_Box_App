@@ -8,12 +8,14 @@ import androidx.fragment.app.FragmentTransaction;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Build;
@@ -31,7 +33,7 @@ import java.io.IOException;
 public class Button2Activity extends AppCompatActivity {
 
     Button mCaptureBtn;
-    ImageView mImageView;
+    BoxDrawingView mImageView;
     private final int PERMISSION_CODE = 1000;
 
     public Uri image_uri;
@@ -41,9 +43,24 @@ public class Button2Activity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_button2);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         //setContentView(new CustomView(this));
-
-        mImageView = findViewById(R.id.image_view);
+        Button undoButton = (Button) findViewById(R.id.undo_button);
+        Button sendButton = (Button) findViewById(R.id.button_send);
+        undoButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                BoxDrawingView boxDr = findViewById(R.id.boxView);
+                boxDr.undoAction();
+            }
+        });
+        sendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Toast.makeText(getApplicationContext(), "Send Button Working", Toast.LENGTH_LONG).show();
+            }
+        });
+        mImageView = findViewById(R.id.boxView);
         mCaptureBtn = findViewById(R.id.capture_image_btn);
 
         mCaptureBtn.setOnClickListener(new View.OnClickListener() {
@@ -94,7 +111,21 @@ public class Button2Activity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if(resultCode == RESULT_OK) {
-            mImageView.setImageURI(image_uri);
+            //mImageView.setImageURI(image_uri);
+            try {
+                Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), image_uri);
+                Matrix matrix = new Matrix();
+
+                matrix.postRotate(90);
+                bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+                bitmap = Bitmap.createScaledBitmap(bitmap,mImageView.getWidth(), mImageView.getHeight(), true);
+                BoxDrawingView boxDr =  this.findViewById(R.id.boxView);
+                boxDr.bitmap = bitmap;
+                BoxDrawingView.backgroundSet = true;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            //mImageView.invalidate();
             /*String FILENAME = "example";
             String string = image_uri.toString();
 
@@ -112,6 +143,7 @@ public class Button2Activity extends AppCompatActivity {
             startActivity(intent);*/
         }
     }
+
 }
 
 

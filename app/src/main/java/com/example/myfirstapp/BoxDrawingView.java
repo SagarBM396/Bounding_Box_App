@@ -21,13 +21,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BoxDrawingView extends View {
+public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView {
     private static final String TAG = "BoxDrawingView";
 
     public static boolean backgroundSet = false;
@@ -61,7 +62,7 @@ public class BoxDrawingView extends View {
         mBoxPaint = new Paint();
         mBoxPaint.setColor(Color.RED);
         mBoxPaint.setStyle(Paint.Style.STROKE);
-        mBoxPaint.setStrokeWidth((float) 3.0);
+        mBoxPaint.setStrokeWidth((float) 5.0);
         // Paint the background off-white
         mBackgroundPaint = new Paint();
         mBackgroundPaint.setColor(Color.RED);
@@ -74,8 +75,12 @@ public class BoxDrawingView extends View {
         //canvas.drawPaint(mBackgroundPaint);
         if(backgroundSet == true)
         {
-            assert bitmap != null;
-            canvas.drawBitmap(bitmap, 0, 0 , mBackgroundPaint);
+            try{
+            canvas.drawBitmap(bitmap, 0, 0 , mBackgroundPaint);}
+            catch(Exception e) {
+                e.printStackTrace();
+                backgroundSet = false;
+        }
         }
         String text = "New Box";
         for (Box box : mBoxen) {
@@ -84,7 +89,7 @@ public class BoxDrawingView extends View {
             float top = Math.min(box.getOrigin().y, box.getCurrent().y);
             float bottom = Math.max(box.getOrigin().y, box.getCurrent().y);
             canvas.drawRect(left, top, right, bottom, mBoxPaint);
-            mBoxPaint.setColor(Color.BLACK);
+            mBoxPaint.setColor(Color.RED);
             mBoxPaint.setTextSize(40);
             text = box.label;
             canvas.drawText(box.label, left, top, mBoxPaint);
@@ -129,6 +134,7 @@ public class BoxDrawingView extends View {
     }
     private void showAddItemDialog(Context c, final Box box) {
         final EditText taskEditText = new EditText(c);
+        final Context con = c;
         AlertDialog dialog = new AlertDialog.Builder(c)
                 .setTitle("Label")
                 .setMessage("Enter the label text")
@@ -137,11 +143,25 @@ public class BoxDrawingView extends View {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         String task = String.valueOf(taskEditText.getText());
-                        box.label = task;
+                        if(task.length() == 0)
+                        {
+                            Toast.makeText(con, "Please enter a valid Label", Toast.LENGTH_LONG).show();
+                            undoAction();
+                            invalidate();
+                        }
+                        else {
+                            box.label = task;
+                            invalidate();
+                        }
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        undoAction();
                         invalidate();
                     }
                 })
-                .setNegativeButton("Cancel", null)
                 .create();
         dialog.show();
     }
