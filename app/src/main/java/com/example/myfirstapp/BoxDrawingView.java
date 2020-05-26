@@ -33,7 +33,7 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
 
     public static boolean backgroundSet = false;
     public Bitmap bitmap;
-
+    public static boolean validStringAdd = true;
     public Box mCurrentBox;
     public List<Box> mBoxen = new ArrayList<>();
 
@@ -80,7 +80,7 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
             catch(Exception e) {
                 e.printStackTrace();
                 backgroundSet = false;
-        }
+                                }
         }
         String text = "New Box";
         for (Box box : mBoxen) {
@@ -117,7 +117,9 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
                 break;
             case MotionEvent.ACTION_UP:
                 action = "ACTION_UP";
+
                 showAddItemDialog(getContext(), mCurrentBox);
+
                 Box.total+=1;
                 mCurrentBox = null;
                 invalidate();
@@ -135,22 +137,24 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
     private void showAddItemDialog(Context c, final Box box) {
         final EditText taskEditText = new EditText(c);
         final Context con = c;
-        AlertDialog dialog = new AlertDialog.Builder(c)
+        AlertDialog dialog = new AlertDialog.Builder(c, R.style.MyAlertDialogStyle)
                 .setTitle("Label")
                 .setMessage("Enter the label text")
                 .setView(taskEditText)
                 .setPositiveButton("Add", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        String task = String.valueOf(taskEditText.getText());
-                        if(task.length() == 0)
+                        String textval = String.valueOf(taskEditText.getText());
+                        if(textval.length() == 0)
                         {
                             Toast.makeText(con, "Please enter a valid Label", Toast.LENGTH_LONG).show();
+                            validStringAdd = false;
                             undoAction();
                             invalidate();
                         }
                         else {
-                            box.label = task;
+                            validStringAdd = true;
+                            box.label = textval;
                             invalidate();
                         }
                     }

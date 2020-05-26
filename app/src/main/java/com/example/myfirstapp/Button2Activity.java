@@ -7,6 +7,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
@@ -21,6 +22,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -35,6 +37,8 @@ public class Button2Activity extends AppCompatActivity {
     Button mCaptureBtn;
     BoxDrawingView mImageView;
     private final int PERMISSION_CODE = 1000;
+
+    private static final String TAG = "Button2Activity";
 
     public Uri image_uri;
     private final int IMAGE_CAPTURE_CODE = 1001;
@@ -108,39 +112,27 @@ public class Button2Activity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("MissingSuperCall")
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if(resultCode == RESULT_OK) {
-            //mImageView.setImageURI(image_uri);
             try {
+                Log.d(TAG, "File Uri: " + image_uri.toString());
+                BoxDrawingView boxDr =  this.findViewById(R.id.boxView);
+                boxDr.mBoxen.clear();
+                Box.total = 0;
                 Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), image_uri);
                 Matrix matrix = new Matrix();
 
                 matrix.postRotate(90);
                 bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
                 bitmap = Bitmap.createScaledBitmap(bitmap,mImageView.getWidth(), mImageView.getHeight(), true);
-                BoxDrawingView boxDr =  this.findViewById(R.id.boxView);
                 boxDr.bitmap = bitmap;
                 BoxDrawingView.backgroundSet = true;
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            //mImageView.invalidate();
-            /*String FILENAME = "example";
-            String string = image_uri.toString();
 
-            try {
-                FileOutputStream fos = openFileOutput(FILENAME, Context.MODE_PRIVATE);
-                fos.write(string.getBytes());
-                fos.close();
-                Toast.makeText(getApplicationContext(), "Saved to " + getFilesDir() + "/" + FILENAME, Toast.LENGTH_LONG).show();
-            }
-            catch (Exception e)
-            {
-                e.printStackTrace();
-            }
-            Intent intent = new Intent(getApplicationContext(), DragAndDrawActivity.class);
-            startActivity(intent);*/
         }
     }
 

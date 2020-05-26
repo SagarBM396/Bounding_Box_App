@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_horizontal">
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:id="@+id/topLayout2"
+        android:layout_height="40dp"
+        android:orientation="horizontal"
+        android:gravity="center_horizontal">
+        <Button
+            android:id="@+id/undo_button2"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_alignParentStart="true"
+            android:text="@string/button_undo" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:scaleType="centerCrop"
+            android:layout_height="match_parent"
+            android:id="@+id/button_send2"
+            android:text="@string/button_send"
+            android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+
+
+
+
+    <com.example.myfirstapp.BoxDrawingView
+        android:id="@+id/boxView2"
+        android:scaleType="centerCrop"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_below="@+id/topLayout2"
+        android:layout_above="@id/pick_image_btn"/>
+
+    <Button
+        android:id="@+id/pick_image_btn"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_alignParentBottom="true"
+
+        android:text="@string/pick_image" />
+
+
+</RelativeLayout>
