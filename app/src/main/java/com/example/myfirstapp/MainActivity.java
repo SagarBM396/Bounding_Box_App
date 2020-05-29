@@ -8,8 +8,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
-import com.example.myfirstapp.R;
-import android.widget.EditText;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
@@ -30,11 +28,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void captureImage(View view) {
-        Intent intent = new Intent(this, Button2Activity.class);
-        startActivity(intent);
-    }
-    public void drawBoxes(View view) {
-        Intent intent = new Intent(this, DragAndDrawActivity.class);
+        Intent intent = new Intent(this, ImageCaptureActivity.class);
         startActivity(intent);
     }
 
@@ -44,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    @Override
+    /*@Override
     public boolean onCreateOptionsMenu(Menu menu) {
 
         getMenuInflater().inflate(R.menu.mymenu, menu);
@@ -63,5 +57,5 @@ public class MainActivity extends AppCompatActivity {
             default:
                 return super.onOptionsItemSelected(item);
         }
-    }
+    }*/
 }

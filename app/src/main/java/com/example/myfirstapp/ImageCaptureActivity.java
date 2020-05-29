@@ -35,7 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 
-public class Button2Activity extends AppCompatActivity {
+public class ImageCaptureActivity extends AppCompatActivity {
 
     Button mCaptureBtn;
     BoxDrawingView mImageView;
