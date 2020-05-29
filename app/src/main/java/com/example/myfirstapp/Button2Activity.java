@@ -18,6 +18,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import androidx.exifinterface.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -31,6 +32,8 @@ import android.widget.Toast;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Objects;
 
 public class Button2Activity extends AppCompatActivity {
 
@@ -100,14 +103,11 @@ public class Button2Activity extends AppCompatActivity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch(requestCode){
-            case PERMISSION_CODE: {
-                if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    openCamera();
-                }
-                else {
-                    Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
-                }
+        if (requestCode == PERMISSION_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openCamera();
+            } else {
+                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -117,25 +117,53 @@ public class Button2Activity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if(resultCode == RESULT_OK) {
             try {
+
                 Log.d(TAG, "File Uri: " + image_uri.toString());
                 BoxDrawingView boxDr =  this.findViewById(R.id.boxView);
                 boxDr.mBoxen.clear();
                 Box.total = 0;
                 Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), image_uri);
-                Matrix matrix = new Matrix();
-
-                matrix.postRotate(90);
-                bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-                bitmap = Bitmap.createScaledBitmap(bitmap,mImageView.getWidth(), mImageView.getHeight(), true);
+                bitmap = rotateImageIfRequired(getApplicationContext(), bitmap, image_uri);
                 boxDr.bitmap = bitmap;
                 BoxDrawingView.backgroundSet = true;
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
     }
+    public Bitmap rotateAndScale(Bitmap bp, int angle) throws IOException {
+        Matrix matrix = new Matrix();
+        Bitmap bitmap;
+        matrix.postRotate(angle);
+        bitmap = Bitmap.createBitmap(bp, 0, 0, bp.getWidth(), bp.getHeight(), matrix, true);
+        bitmap = Bitmap.createScaledBitmap(bitmap,mImageView.getWidth(), mImageView.getHeight(), true);
+        bp.recycle();
+        return bitmap;
+    }
+    private Bitmap rotateImageIfRequired(Context context, Bitmap img, Uri selectedImage) throws IOException {
 
+        InputStream input = context.getContentResolver().openInputStream(selectedImage);
+        ExifInterface ei;
+        if (Build.VERSION.SDK_INT > 23) {
+            assert input != null;
+            ei = new ExifInterface(input);
+        }
+        else
+            ei = new ExifInterface(Objects.requireNonNull(selectedImage.getPath()));
+
+        int orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+
+        switch (orientation) {
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                return rotateAndScale(img, 90);
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                return rotateAndScale(img, 180);
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                return rotateAndScale(img, 270);
+            default:
+                return img;
+        }
+    }
 }
 
 

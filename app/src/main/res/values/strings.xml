@@ -7,4 +7,6 @@
     <string name="button_undo">Undo</string>
     <string name="drag_and_draw">Drag And Draw</string>
     <string name="pick_image">Pick Image From Storage</string>
+    <string name="settings_menu_text">Congratulate Sagar</string>
+    <string name="feedback_menu_text">Praise Sagar</string>
 </resources>

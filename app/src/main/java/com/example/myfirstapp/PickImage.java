@@ -13,6 +13,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -116,36 +117,57 @@ public class PickImage extends AppCompatActivity {
     }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        switch (requestCode) {
-            case FILE_SELECT_CODE:
-                if (resultCode == RESULT_OK) {
-                    // Get the Uri of the selected file
-                    Uri uri = data.getData();
-                    Log.d(TAG, "File Uri: " + uri.toString());
-                    // Get the path
-                    try {
-                        File imgFile = new  File(getImagePath2(uri));
-                        if(imgFile.exists()){
+        if (requestCode == FILE_SELECT_CODE) {
+            if (resultCode == RESULT_OK) {
+                // Get the Uri of the selected file
+                Uri uri = data.getData();
+                assert uri != null;
+                Log.d(TAG, "File Uri: " + uri.toString());
+                // Get the path
+                try {
+                    String path = getImagePath2(uri);
+                    File imgFile = new File(path);
+                    if (imgFile.exists()) {
 
-                            BoxDrawingView boxDr =  this.findViewById(R.id.boxView2);
-                            boxDr.mBoxen.clear();
-                            Box.total = 0;
-                            Bitmap bitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
-                            Matrix matrix = new Matrix();
+                        ExifInterface ei = new ExifInterface(path);
+                        int orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION,
+                                ExifInterface.ORIENTATION_UNDEFINED);
 
-                            matrix.postRotate(90);
-                            bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-                            bitmap = Bitmap.createScaledBitmap(bitmap,mImageView.getWidth(), mImageView.getHeight(), true);
-                            boxDr.bitmap = bitmap;
-                            BoxDrawingView.backgroundSet = true;
-                            //Picasso.get().load(imgFile).into(mImageView);
+                        Bitmap rotatedBitmap = null;
+                        Bitmap bitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+                        switch (orientation) {
 
-                        };
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                            case ExifInterface.ORIENTATION_ROTATE_90:
+                                rotatedBitmap = rotateImage(bitmap, 90);
+                                break;
+
+                            case ExifInterface.ORIENTATION_ROTATE_180:
+                                rotatedBitmap = rotateImage(bitmap, 180);
+                                break;
+
+                            case ExifInterface.ORIENTATION_ROTATE_270:
+                                rotatedBitmap = rotateImage(bitmap, 270);
+                                break;
+
+                            case ExifInterface.ORIENTATION_NORMAL:
+                            default:
+                                rotatedBitmap = bitmap;
+                        }
+
+                        BoxDrawingView boxDr = this.findViewById(R.id.boxView2);
+                        boxDr.mBoxen.clear();
+                        Box.total = 0;
+
+                        boxDr.bitmap = rotatedBitmap;
+                        BoxDrawingView.backgroundSet = true;
+                        //Picasso.get().load(imgFile).into(mImageView);
+
                     }
+                    ;
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                break;
+            }
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
@@ -200,4 +222,13 @@ public class PickImage extends AppCompatActivity {
 
         return path;
     }
+    public Bitmap rotateImage(Bitmap source, float angle) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angle);
+        Bitmap bitmap = Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(),
+                matrix, true);
+        bitmap = Bitmap.createScaledBitmap(bitmap,mImageView.getWidth(), mImageView.getHeight(), true);
+        return bitmap;
+    }
+
 }
