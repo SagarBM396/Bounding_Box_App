@@ -161,7 +161,7 @@ public class ImageCaptureActivity extends AppCompatActivity {
             case ExifInterface.ORIENTATION_ROTATE_270:
                 return rotateAndScale(img, 270);
             default:
-                return img;
+                return rotateAndScale(img, 0);
         }
     }
 }
