@@ -151,7 +151,7 @@ public class PickImage extends AppCompatActivity {
 
                             case ExifInterface.ORIENTATION_NORMAL:
                             default:
-                                rotatedBitmap = bitmap;
+                                rotatedBitmap = rotateImage(bitmap, 0);
                         }
 
                         BoxDrawingView boxDr = this.findViewById(R.id.boxView2);
