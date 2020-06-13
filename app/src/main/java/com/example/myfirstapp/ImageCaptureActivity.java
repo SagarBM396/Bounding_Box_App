@@ -180,11 +180,11 @@ public class ImageCaptureActivity extends AppCompatActivity {
     }
     String changeMode()
     {
-        if(mImageView.mode == "Box")
+        if(mImageView.mode.equals("Box"))
         {
             mImageView.mode = "Circle";
         }
-        else if(mImageView.mode == "Circle")
+        else if(mImageView.mode.equals("Circle"))
         {
             mImageView.mode = "Oval";
         }

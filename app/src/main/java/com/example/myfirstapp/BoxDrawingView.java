@@ -309,6 +309,5 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
         }
 
         }
-
 }
 
