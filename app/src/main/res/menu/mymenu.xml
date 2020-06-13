@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:title="@string/feedback_menu_text"
+        android:id="@+id/feedback" />
+    <item
+        android:title="@string/settings_menu_text"
+        android:id="@+id/settings" />
+</menu>
