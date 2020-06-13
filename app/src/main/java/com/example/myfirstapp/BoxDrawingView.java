@@ -31,11 +31,17 @@ import java.util.List;
 public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView {
     private static final String TAG = "BoxDrawingView";
 
+    public String mode;
+    public List<Character> order = new ArrayList<>();
+
     public static boolean backgroundSet = false;
     public Bitmap bitmap;
     public static boolean validStringAdd = true;
     public Box mCurrentBox;
     public List<Box> mBoxen = new ArrayList<>();
+
+    public Circle mCurrentCircle;
+    public List<Circle> mCirclen = new ArrayList<>();
 
     private Paint mBoxPaint;
     private Paint mBackgroundPaint;
@@ -88,11 +94,29 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
             float right = Math.max(box.getOrigin().x, box.getCurrent().x);
             float top = Math.min(box.getOrigin().y, box.getCurrent().y);
             float bottom = Math.max(box.getOrigin().y, box.getCurrent().y);
-            canvas.drawRect(left, top, right, bottom, mBoxPaint);
+            if(box.oval == false)
+                canvas.drawRect(left, top, right, bottom, mBoxPaint);
+            else
+                canvas.drawOval(left, top, right, bottom, mBoxPaint);
             mBoxPaint.setColor(Color.RED);
             mBoxPaint.setTextSize(40);
             text = box.label;
             canvas.drawText(box.label, left, top, mBoxPaint);
+        }
+        text = "New Circle";
+        for (Circle circle : mCirclen) {
+            float x1 = circle.getOrigin().x;                                        //Starting point x
+            float x2 = circle.getCurrent().x;                                       //End point x
+            float y1 = circle.getOrigin().y;                                        //Start point y
+            float y2 = circle.getCurrent().y;                                       //End point y
+            float midx = (x1 + x2)/2;                                               //Midpoint x
+            float midy = (y1 + y2)/2;                                               //Midpoint y
+            float dist = (float)Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+            canvas.drawCircle(midx, midy, dist/2, mBoxPaint);
+            mBoxPaint.setColor(Color.RED);
+            mBoxPaint.setTextSize(40);
+            text = circle.label;
+            canvas.drawText(circle.label, midx, midy, mBoxPaint);
         }
     }
 
@@ -100,35 +124,83 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
     public boolean onTouchEvent(MotionEvent event) {
         PointF current = new PointF(event.getX(), event.getY());
         String action = "";
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                action = "ACTION_DOWN";
-                // Reset drawing state
-                mCurrentBox = new Box(current);
-                mBoxen.add(mCurrentBox);
-                break;
+        switch (mode) {
+            case "Box":
+            case "Oval":{
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        action = "ACTION_DOWN";
+                        order.add('b');
+                        // Reset drawing state
+                        mCurrentBox = new Box(current);
+                        if(mode == "Oval")
+                            mCurrentBox.oval = true;
+                        mBoxen.add(mCurrentBox);
+                        break;
 
-            case MotionEvent.ACTION_MOVE:
-                action = "ACTION_MOVE";
-                if (mCurrentBox != null) {
-                    mCurrentBox.setCurrent(current);
-                    invalidate();
+                    case MotionEvent.ACTION_MOVE:
+                        action = "ACTION_MOVE";
+                        if (mCurrentBox != null) {
+                            mCurrentBox.setCurrent(current);
+                            invalidate();
+                        }
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        action = "ACTION_UP";
+
+                        showAddItemDialog(getContext(), mCurrentBox);
+
+                        Box.total += 1;
+                        mCurrentBox = null;
+                        invalidate();
+                        break;
+                    case MotionEvent.ACTION_CANCEL:
+                        action = "ACTION_CANCEL";
+                        mCurrentBox = null;
+                        invalidate();
+                        break;
                 }
                 break;
-            case MotionEvent.ACTION_UP:
-                action = "ACTION_UP";
+            }
 
-                showAddItemDialog(getContext(), mCurrentBox);
 
-                Box.total+=1;
-                mCurrentBox = null;
-                invalidate();
+            case "Circle":
+            {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        action = "ACTION_DOWN";
+                        order.add('c');
+                        // Reset drawing state
+                        mCurrentCircle = new Circle(current);
+                        mCirclen.add(mCurrentCircle);
+                        break;
+
+                    case MotionEvent.ACTION_MOVE:
+                        action = "ACTION_MOVE";
+                        if (mCurrentCircle != null) {
+                            mCurrentCircle.setCurrent(current);
+                            invalidate();
+                        }
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        action = "ACTION_UP";
+
+                        showAddItemDialog(getContext(), mCurrentCircle);
+
+                        Circle.total += 1;
+                        mCurrentCircle = null;
+                        invalidate();
+                        break;
+                    case MotionEvent.ACTION_CANCEL:
+                        action = "ACTION_CANCEL";
+                        mCurrentCircle = null;
+                        invalidate();
+                        break;
+                }
+            }
+            default:
                 break;
-            case MotionEvent.ACTION_CANCEL:
-                action = "ACTION_CANCEL";
-                mCurrentBox = null;
-                invalidate();
-                break;
+
         }
         Log.i(TAG, action + " at x=" + current.x +
                 ", y=" + current.y);
@@ -169,16 +241,74 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
                 .create();
         dialog.show();
     }
-    public void undoAction()
-    {
-        if(Box.total == 0)
-            return;
-        else {
-            Box b = mBoxen.remove(Box.total-1);
-            Box.total-=1;
-            invalidate();
-        }
+
+    private void showAddItemDialog(Context c, final Circle circle) {
+        final EditText taskEditText = new EditText(c);
+        final Context con = c;
+        AlertDialog dialog = new AlertDialog.Builder(c, R.style.MyAlertDialogStyle)
+                .setTitle("Label")
+                .setMessage("Enter the label text")
+                .setView(taskEditText)
+                .setPositiveButton("Add", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        String textval = String.valueOf(taskEditText.getText());
+                        if(textval.length() == 0)
+                        {
+                            Toast.makeText(con, "Please enter a valid Label", Toast.LENGTH_LONG).show();
+                            validStringAdd = false;
+                            undoAction();
+                            invalidate();
+                        }
+                        else {
+                            validStringAdd = true;
+                            circle.label = textval;
+                            invalidate();
+                        }
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        undoAction();
+                        invalidate();
+                    }
+                })
+                .create();
+        dialog.show();
     }
+
+    public void undoAction() {
+        if(order.size() == 0)
+            return;
+        char last = order.get(order.size() - 1);
+        switch (last)
+        {
+            case 'b':
+                if (Box.total == 0)
+                    return;
+                else {
+                    Box b = mBoxen.remove(Box.total - 1);
+                    Box.total -= 1;
+                    char temp = order.remove(order.size() - 1);
+                    invalidate();
+                }
+                break;
+            case 'c':
+                if (Circle.total == 0)
+                    return;
+                else {
+                    Circle c = mCirclen.remove(Circle.total - 1);
+                    Circle.total -= 1;
+                    char temp = order.remove(order.size() - 1);
+                    invalidate();
+                }
+                break;
+            default:
+                break;
+        }
+
+        }
 
 }
 

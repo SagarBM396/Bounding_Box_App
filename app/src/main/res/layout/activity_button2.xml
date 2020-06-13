@@ -17,8 +17,15 @@
             android:id="@+id/undo_button"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
             android:text="@string/button_undo" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/mode_text"
+            android:id="@+id/mode_btn"
+            android:layout_toEndOf="@+id/undo_button"/>
 
         <Button
             android:layout_width="wrap_content"
@@ -26,7 +33,7 @@
             android:layout_height="match_parent"
             android:id="@+id/button_send"
             android:text="@string/button_send"
-            android:layout_alignParentRight="true" />
+            android:layout_alignParentEnd="true" />
     </RelativeLayout>
 
 

@@ -39,6 +39,8 @@ public class ImageCaptureActivity extends AppCompatActivity {
 
     Button mCaptureBtn;
     BoxDrawingView mImageView;
+    Button modeBtn;
+    String mode;
     private final int PERMISSION_CODE = 1000;
 
     private static final String TAG = "Button2Activity";
@@ -51,9 +53,19 @@ public class ImageCaptureActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_button2);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        mode = "Box";
         //setContentView(new CustomView(this));
         Button undoButton = (Button) findViewById(R.id.undo_button);
         Button sendButton = (Button) findViewById(R.id.button_send);
+        modeBtn = (Button) findViewById(R.id.mode_btn) ;
+
+        modeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                modeBtn.setText(changeMode());
+            }
+        });
+
         undoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -68,6 +80,8 @@ public class ImageCaptureActivity extends AppCompatActivity {
             }
         });
         mImageView = findViewById(R.id.boxView);
+        mImageView.mode = mode;
+
         mCaptureBtn = findViewById(R.id.capture_image_btn);
 
         mCaptureBtn.setOnClickListener(new View.OnClickListener() {
@@ -117,10 +131,10 @@ public class ImageCaptureActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if(resultCode == RESULT_OK) {
             try {
-
                 Log.d(TAG, "File Uri: " + image_uri.toString());
                 BoxDrawingView boxDr =  this.findViewById(R.id.boxView);
                 boxDr.mBoxen.clear();
+                boxDr.mCirclen.clear();
                 Box.total = 0;
                 Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), image_uri);
                 bitmap = rotateImageIfRequired(getApplicationContext(), bitmap, image_uri);
@@ -163,6 +177,22 @@ public class ImageCaptureActivity extends AppCompatActivity {
             default:
                 return rotateAndScale(img, 0);
         }
+    }
+    String changeMode()
+    {
+        if(mImageView.mode == "Box")
+        {
+            mImageView.mode = "Circle";
+        }
+        else if(mImageView.mode == "Circle")
+        {
+            mImageView.mode = "Oval";
+        }
+        else
+        {
+            mImageView.mode = "Box";
+        }
+        return mImageView.mode;
     }
 }
 

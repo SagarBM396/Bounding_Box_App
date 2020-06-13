@@ -35,10 +35,13 @@ import java.net.URISyntaxException;
 
 public class PickImage extends AppCompatActivity {
 
+    String mode;
+
     Button pickImagebutton;
     Button undoButton;
     Button sendButton;
-    ImageView mImageView;
+    Button modeBtn;
+    BoxDrawingView mImageView;
     private static final String TAG = "BoxDrawingView";
     private final int PERMISSION_CODE = 1000;
 
@@ -48,11 +51,23 @@ public class PickImage extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pick_image);
+        mode = "Box";
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         pickImagebutton = findViewById(R.id.pick_image_btn);
         undoButton = findViewById(R.id.undo_button2);
         sendButton = findViewById(R.id.button_send2);
+        modeBtn = findViewById(R.id.mode_btn2);
+
+        modeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                modeBtn.setText(changeMode());
+            }
+        });
+
         mImageView = findViewById(R.id.boxView2);
+        mImageView.mode = "Box";
+
         undoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -156,6 +171,7 @@ public class PickImage extends AppCompatActivity {
 
                         BoxDrawingView boxDr = this.findViewById(R.id.boxView2);
                         boxDr.mBoxen.clear();
+                        boxDr.mCirclen.clear();
                         Box.total = 0;
 
                         boxDr.bitmap = rotatedBitmap;
@@ -229,6 +245,23 @@ public class PickImage extends AppCompatActivity {
                 matrix, true);
         bitmap = Bitmap.createScaledBitmap(bitmap,mImageView.getWidth(), mImageView.getHeight(), true);
         return bitmap;
+    }
+
+    String changeMode()
+    {
+        if(mImageView.mode == "Box")
+        {
+            mImageView.mode = "Circle";
+        }
+        else if(mImageView.mode == "Circle")
+        {
+            mImageView.mode = "Oval";
+        }
+        else
+        {
+            mImageView.mode = "Box";
+        }
+        return mImageView.mode;
     }
 
 }
