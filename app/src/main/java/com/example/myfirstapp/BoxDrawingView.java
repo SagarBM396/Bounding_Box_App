@@ -9,6 +9,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LightingColorFilter;
 import android.graphics.Paint;
 import android.graphics.PointF;
 import android.net.Uri;
@@ -308,6 +309,16 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
                 break;
         }
 
+        }
+        public void reDraw(Bitmap bmp)
+        {
+            bitmap = bmp;
+            invalidate();
+        }
+        public void reDraw(LightingColorFilter lf)
+        {
+            mBackgroundPaint.setColorFilter(lf);
+            invalidate();
         }
 }
 

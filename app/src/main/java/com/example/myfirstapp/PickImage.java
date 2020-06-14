@@ -4,15 +4,23 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
+import android.animation.ArgbEvaluator;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
+import android.graphics.LightingColorFilter;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
@@ -23,6 +31,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -42,6 +52,10 @@ public class PickImage extends AppCompatActivity {
     Button sendButton;
     Button modeBtn;
     BoxDrawingView mImageView;
+    Button brt_btn;
+
+    int progress = 128;
+
     private static final String TAG = "BoxDrawingView";
     private final int PERMISSION_CODE = 1000;
 
@@ -53,10 +67,26 @@ public class PickImage extends AppCompatActivity {
         setContentView(R.layout.activity_pick_image);
         mode = "Box";
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
+        progress = 128;
+
         pickImagebutton = findViewById(R.id.pick_image_btn);
         undoButton = findViewById(R.id.undo_button2);
         sendButton = findViewById(R.id.button_send2);
         modeBtn = findViewById(R.id.mode_btn2);
+        brt_btn = findViewById(R.id.brightness_btn2);
+
+        brt_btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(BoxDrawingView.backgroundSet == false || mImageView.bitmap == null)
+                {
+                    Toast.makeText(getApplicationContext(), "Background not set", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                ShowDialog(mImageView.bitmap);
+            }
+        });
 
         modeBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -176,6 +206,8 @@ public class PickImage extends AppCompatActivity {
 
                         boxDr.bitmap = rotatedBitmap;
                         BoxDrawingView.backgroundSet = true;
+
+                        progress = 100;
                         //Picasso.get().load(imgFile).into(mImageView);
 
                     }
@@ -264,4 +296,77 @@ public class PickImage extends AppCompatActivity {
         return mImageView.mode;
     }
 
+    public void ShowDialog(final Bitmap bmp){
+        //Toast.makeText(this, "Reached ShowDialog", Toast.LENGTH_LONG).show();
+        final AlertDialog.Builder popDialog = new AlertDialog.Builder(this);
+        final SeekBar seek = new SeekBar(this);
+        seek.setMax(256);
+        seek.setKeyProgressIncrement(1);
+        seek.setProgress(progress);
+
+        popDialog.setIcon(R.drawable.ic_brightness_high_black_24dp);
+        popDialog.setTitle("Please Select Into Your Desired Brightness ");
+        popDialog.setView(seek);
+
+
+        seek.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+
+
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+                //mImageView.reDraw(changeBitmapContrastBrightness(bmp, (float) progress / 100f, 1));
+
+                ArgbEvaluator evaluator = new ArgbEvaluator();
+
+                float fraction = progress / 256.0F;
+
+                int mul = (int) evaluator.evaluate(fraction, 0xFF7F7F7F, 0xFFFFFFFF);
+                int add = (int) evaluator.evaluate(fraction, 0x00000000, 0x00222222);
+                mImageView.reDraw(new LightingColorFilter(mul, add));
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+                mImageView.invalidate();
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                mImageView.invalidate();
+                progress = seekBar.getProgress();
+            }
+        });
+        // Button OK
+        popDialog.setPositiveButton("OK",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+        popDialog.create();
+        popDialog.show();
+    }
+
+    public static Bitmap changeBitmapContrastBrightness(Bitmap bmp, float contrast, float brightness) {
+        ColorMatrix cm = new ColorMatrix(new float[]
+                {
+                        contrast, 0, 0, 0, brightness,
+                        0, contrast, 0, 0, brightness,
+                        0, 0, contrast, 0, brightness,
+                        0, 0, 0, 1, 0
+                });
+
+        Bitmap ret = Bitmap.createBitmap(bmp.getWidth(), bmp.getHeight(), bmp.getConfig());
+
+        Canvas canvas = new Canvas(ret);
+
+        Paint paint = new Paint();
+        paint.setColorFilter(new ColorMatrixColorFilter(cm));
+        canvas.drawBitmap(bmp, 0, 0, paint);
+
+        return ret;
+    }
 }

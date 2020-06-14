@@ -7,8 +7,11 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import android.Manifest;
+import android.animation.ArgbEvaluator;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -16,6 +19,7 @@ import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.LightingColorFilter;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import androidx.exifinterface.media.ExifInterface;
@@ -27,6 +31,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -40,8 +45,10 @@ public class ImageCaptureActivity extends AppCompatActivity {
     Button mCaptureBtn;
     BoxDrawingView mImageView;
     Button modeBtn;
+    Button brt_btn;
     String mode;
     private final int PERMISSION_CODE = 1000;
+    int progress = 128;
 
     private static final String TAG = "Button2Activity";
 
@@ -55,14 +62,30 @@ public class ImageCaptureActivity extends AppCompatActivity {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         mode = "Box";
         //setContentView(new CustomView(this));
+
+        progress = 128;
+
         Button undoButton = (Button) findViewById(R.id.undo_button);
         Button sendButton = (Button) findViewById(R.id.button_send);
+        brt_btn = findViewById(R.id.brightness_btn);
         modeBtn = (Button) findViewById(R.id.mode_btn) ;
 
         modeBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 modeBtn.setText(changeMode());
+            }
+        });
+
+        brt_btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(!BoxDrawingView.backgroundSet || mImageView.bitmap == null)
+                {
+                    Toast.makeText(getApplicationContext(), "Background not set", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                ShowDialog(mImageView.bitmap);
             }
         });
 
@@ -193,6 +216,60 @@ public class ImageCaptureActivity extends AppCompatActivity {
             mImageView.mode = "Box";
         }
         return mImageView.mode;
+    }
+
+    public void ShowDialog(final Bitmap bmp){
+        //Toast.makeText(this, "Reached ShowDialog", Toast.LENGTH_LONG).show();
+        final AlertDialog.Builder popDialog = new AlertDialog.Builder(this);
+        final SeekBar seek = new SeekBar(this);
+        seek.setMax(256);
+        seek.setKeyProgressIncrement(1);
+        seek.setProgress(progress);
+
+        popDialog.setIcon(R.drawable.ic_brightness_high_black_24dp);
+        popDialog.setTitle("Please Select Into Your Desired Brightness ");
+        popDialog.setView(seek);
+
+
+        seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+
+
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+                //mImageView.reDraw(changeBitmapContrastBrightness(bmp, (float) progress / 100f, 1));
+
+                ArgbEvaluator evaluator = new ArgbEvaluator();
+
+                float fraction = progress / 256.0F;
+
+                int mul = (int) evaluator.evaluate(fraction, 0xFF7F7F7F, 0xFFFFFFFF);
+                int add = (int) evaluator.evaluate(fraction, 0x00000000, 0x00222222);
+                mImageView.reDraw(new LightingColorFilter(mul, add));
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+                mImageView.invalidate();
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                mImageView.invalidate();
+                progress = seekBar.getProgress();
+            }
+        });
+        // Button OK
+        popDialog.setPositiveButton("OK",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+        popDialog.create();
+        popDialog.show();
     }
 }
 

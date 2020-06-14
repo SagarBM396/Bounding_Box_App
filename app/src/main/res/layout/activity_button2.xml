@@ -18,7 +18,7 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_alignParentStart="true"
-            app:icon = "@android:drawable/ic_undo"
+            android:drawableLeft="@drawable/ic_undo_black_24dp"
             android:text="@string/button_undo" />
 
         <Button
@@ -30,10 +30,19 @@
 
         <Button
             android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text = "@string/bright_text"
+            android:id="@+id/brightness_btn"
+            android:drawableStart="@drawable/ic_brightness_high_black_24dp"
+            android:layout_toStartOf="@+id/button_send"/>
+
+        <Button
+            android:layout_width="wrap_content"
             android:scaleType="centerCrop"
             android:layout_height="match_parent"
             android:id="@+id/button_send"
             android:text="@string/button_send"
+            android:drawableLeft="@drawable/ic_send_black_24dp"
             android:layout_alignParentEnd="true" />
     </RelativeLayout>
 
@@ -50,10 +59,13 @@
 
     <Button
         android:id="@+id/capture_image_btn"
+        android:layout_centerInParent="true"
+        android:gravity="center"
         android:layout_width="match_parent"
         android:layout_height="40dp"
         android:layout_alignParentBottom="true"
-
+        android:drawableStart = "@drawable/ic_photo_camera_black_24dp"
+        android:drawablePadding="0dp"
         android:text="@string/capture_image" />
 
 
