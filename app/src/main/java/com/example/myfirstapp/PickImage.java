@@ -1,8 +1,5 @@
 package com.example.myfirstapp;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.Manifest;
 import android.animation.ArgbEvaluator;
 import android.annotation.SuppressLint;
@@ -32,14 +29,13 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
-
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -104,7 +100,7 @@ public class PickImage extends AppCompatActivity {
                     Toast.makeText(getApplicationContext(), "Background not set", Toast.LENGTH_LONG).show();
                     return;
                 }
-                ShowDialog(mImageView.bitmap);
+                ShowDialog();
             }
         });
 
@@ -358,7 +354,7 @@ public class PickImage extends AppCompatActivity {
         return bitmap;
     }
 
-    public void ShowDialog(final Bitmap bmp){
+    public void ShowDialog(){
         //Toast.makeText(this, "Reached ShowDialog", Toast.LENGTH_LONG).show();
         final AlertDialog.Builder popDialog = new AlertDialog.Builder(this);
         final SeekBar seek = new SeekBar(this);

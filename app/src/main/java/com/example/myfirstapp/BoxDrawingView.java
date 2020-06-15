@@ -420,7 +420,7 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
         switch (last)
         {
             case 'b':
-                if (Box.total == 0)
+                if (Box.total == 0 || mBoxen.size() == 0)
                     return;
                 else {
                     Box b = mBoxen.remove(Box.total - 1);
@@ -430,7 +430,7 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
                 }
                 break;
             case 'c':
-                if (Circle.total == 0)
+                if (Circle.total == 0 || mCirclen.size() == 0)
                     return;
                 else {
                     Circle c = mCirclen.remove(Circle.total - 1);
