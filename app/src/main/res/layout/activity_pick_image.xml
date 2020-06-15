@@ -15,18 +15,18 @@
         android:gravity="center_horizontal">
         <Button
             android:id="@+id/undo_button2"
-            android:layout_width="wrap_content"
+            android:layout_width="40dp"
             android:layout_height="match_parent"
             android:layout_alignParentStart="true"
-            android:drawableStart="@drawable/ic_undo_black_24dp"
-            android:text="@string/button_undo" />
+            android:background="@drawable/ic_undo_black_24dp" />
 
-        <Button
+        <Spinner
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:text = "@string/mode_text"
-            android:id="@+id/mode_btn2"
-            android:layout_toEndOf="@+id/undo_button2"/>
+            android:id="@+id/mode_spinner2"
+            android:layout_toEndOf="@+id/undo_button2"
+            tools:ignore="RelativeOverlap" />
 
         <Button
             android:layout_width="wrap_content"
@@ -35,6 +35,13 @@
             android:id="@+id/brightness_btn2"
             android:drawableStart="@drawable/ic_brightness_high_black_24dp"
             android:layout_toStartOf="@+id/button_send2"/>
+
+        <Button
+            android:layout_width="30dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/accept2"
+            android:background="@drawable/ic_check_black_24dp"
+            android:layout_toStartOf="@+id/brightness_btn2"/>
 
         <Button
             android:layout_width="wrap_content"
@@ -66,6 +73,7 @@
         android:layout_alignParentBottom="true"
         android:layout_centerInParent="true"
         android:text="@string/pick_image" />
+
 
 
 </RelativeLayout>

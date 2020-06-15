@@ -29,9 +29,12 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,11 +47,14 @@ public class ImageCaptureActivity extends AppCompatActivity {
 
     Button mCaptureBtn;
     BoxDrawingView mImageView;
-    Button modeBtn;
+    Spinner modeSpnr;
     Button brt_btn;
+    Button checkButton;
     String mode;
     private final int PERMISSION_CODE = 1000;
     int progress = 128;
+
+    public static final String[] paths = {"Box", "Circle", "Oval", "Polygon"};
 
     private static final String TAG = "Button2Activity";
 
@@ -65,17 +71,80 @@ public class ImageCaptureActivity extends AppCompatActivity {
 
         progress = 128;
 
-        Button undoButton = (Button) findViewById(R.id.undo_button);
-        Button sendButton = (Button) findViewById(R.id.button_send);
+        Button undoButton = findViewById(R.id.undo_button);
+        Button sendButton = findViewById(R.id.button_send);
         brt_btn = findViewById(R.id.brightness_btn);
-        modeBtn = (Button) findViewById(R.id.mode_btn) ;
+        modeSpnr = findViewById(R.id.mode_spinner);
+        checkButton = findViewById(R.id.accept);
+        checkButton.setVisibility(View.INVISIBLE);
+        checkButton.setClickable(false);
 
-        modeBtn.setOnClickListener(new View.OnClickListener() {
+        checkButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                modeBtn.setText(changeMode());
+                if(mImageView.mCurrentPolygon == null)
+                {
+                    return;
+                }
+                mImageView.showDialogPoly();
+                mImageView.mPolygonen.set(mImageView.mPolygonen.size()-1, mImageView.mCurrentPolygon);
+                mImageView.mCurrentPolygon = null;
+                Polygon.total += 1;
             }
         });
+
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+                android.R.layout.simple_spinner_item, paths);
+
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        modeSpnr.setAdapter(adapter);
+        modeSpnr.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                if(mImageView.mCurrentPolygon != null)
+                {
+                    mImageView.mPolygonen.remove(mImageView.mPolygonen.size() - 1);
+                    mImageView.mCurrentPolygon = null;
+                    mImageView.reDraw();
+                }
+                switch (i) {
+                    case 0:
+                        mode = "Box";
+                        mImageView.mode = "Box";
+                        checkButton.setVisibility(View.INVISIBLE);
+                        checkButton.setClickable(false);
+                        break;
+                    case 1:
+                        mode = "Circle";
+                        mImageView.mode = "Circle";
+                        checkButton.setVisibility(View.INVISIBLE);
+                        checkButton.setClickable(false);
+                        break;
+                    case 2:
+                        mode = "Oval";
+                        mImageView.mode = "Oval";
+                        checkButton.setVisibility(View.INVISIBLE);
+                        checkButton.setClickable(false);
+                        break;
+                    case 3:
+                        mode = "Polygon";
+                        mImageView.mode = "Polygon";
+                        checkButton.setVisibility(View.VISIBLE);
+                        checkButton.setClickable(true);
+                        break;
+                    default:
+                        break;
+
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                Toast.makeText(getApplicationContext(), "Set a mode", Toast.LENGTH_LONG).show();
+            }
+        });
+
 
         brt_btn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -158,7 +227,15 @@ public class ImageCaptureActivity extends AppCompatActivity {
                 BoxDrawingView boxDr =  this.findViewById(R.id.boxView);
                 boxDr.mBoxen.clear();
                 boxDr.mCirclen.clear();
+                boxDr.mPolygonen.clear();
+                boxDr.mCurrentPolygon = null;
+                //boxDr.mCurrentCircle = null;
+                //boxDr.mCurrentBox = null;
+
+                Circle.total = 0;
                 Box.total = 0;
+                Polygon.total = 0;
+
                 Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), image_uri);
                 bitmap = rotateImageIfRequired(getApplicationContext(), bitmap, image_uri);
                 boxDr.bitmap = bitmap;
@@ -200,22 +277,6 @@ public class ImageCaptureActivity extends AppCompatActivity {
             default:
                 return rotateAndScale(img, 0);
         }
-    }
-    String changeMode()
-    {
-        if(mImageView.mode.equals("Box"))
-        {
-            mImageView.mode = "Circle";
-        }
-        else if(mImageView.mode.equals("Circle"))
-        {
-            mImageView.mode = "Oval";
-        }
-        else
-        {
-            mImageView.mode = "Box";
-        }
-        return mImageView.mode;
     }
 
     public void ShowDialog(final Bitmap bmp){

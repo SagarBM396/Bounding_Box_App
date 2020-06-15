@@ -29,10 +29,13 @@ import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -50,9 +53,12 @@ public class PickImage extends AppCompatActivity {
     Button pickImagebutton;
     Button undoButton;
     Button sendButton;
-    Button modeBtn;
+    Spinner modeSpnr;
     BoxDrawingView mImageView;
     Button brt_btn;
+    Button checkButton;
+
+    public static final String[] paths = {"Box", "Circle", "Oval", "Polygon"};
 
     int progress = 128;
 
@@ -73,13 +79,27 @@ public class PickImage extends AppCompatActivity {
         pickImagebutton = findViewById(R.id.pick_image_btn);
         undoButton = findViewById(R.id.undo_button2);
         sendButton = findViewById(R.id.button_send2);
-        modeBtn = findViewById(R.id.mode_btn2);
+        modeSpnr = findViewById(R.id.mode_spinner2);
         brt_btn = findViewById(R.id.brightness_btn2);
+        checkButton = findViewById(R.id.accept2);
+        checkButton.setVisibility(View.INVISIBLE);
+        checkButton.setClickable(false);
+        checkButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(mImageView.mCurrentPolygon == null)
+                    return;
+                mImageView.showDialogPoly();
+                mImageView.mPolygonen.set(mImageView.mPolygonen.size()-1, mImageView.mCurrentPolygon);
+                mImageView.mCurrentPolygon = null;
+                Polygon.total += 1;
+            }
+        });
 
         brt_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(BoxDrawingView.backgroundSet == false || mImageView.bitmap == null)
+                if(!BoxDrawingView.backgroundSet || mImageView.bitmap == null)
                 {
                     Toast.makeText(getApplicationContext(), "Background not set", Toast.LENGTH_LONG).show();
                     return;
@@ -88,12 +108,71 @@ public class PickImage extends AppCompatActivity {
             }
         });
 
-        modeBtn.setOnClickListener(new View.OnClickListener() {
+        ArrayAdapter<String>adapter = new ArrayAdapter<String>(this,
+                android.R.layout.simple_spinner_item, paths);
+
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        modeSpnr.setAdapter(adapter);
+        modeSpnr.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
-            public void onClick(View view) {
-                modeBtn.setText(changeMode());
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                if(mImageView.mCurrentPolygon != null)
+                {
+                    mImageView.mPolygonen.remove(mImageView.mPolygonen.size() - 1);
+                    mImageView.mCurrentPolygon = null;
+                    mImageView.reDraw();
+                }
+                switch (i) {
+                    case 0:
+                        mode = "Box";
+                        mImageView.mode = "Box";
+                        checkButton.setVisibility(View.INVISIBLE);
+                        checkButton.setClickable(false);
+                        break;
+                    case 1:
+                        mode = "Circle";
+                        mImageView.mode = "Circle";
+                        checkButton.setVisibility(View.INVISIBLE);
+                        checkButton.setClickable(false);
+                        break;
+                    case 2:
+                        mode = "Oval";
+                        mImageView.mode = "Oval";
+                        checkButton.setVisibility(View.INVISIBLE);
+                        checkButton.setClickable(false);
+                        break;
+                    case 3:
+                        mode = "Polygon";
+                        mImageView.mode = "Polygon";
+                        checkButton.setVisibility(View.VISIBLE);
+                        checkButton.setClickable(true);
+                        break;
+                    default:
+                        break;
+
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                Toast.makeText(getApplicationContext(), "Set a mode", Toast.LENGTH_LONG).show();
             }
         });
+
+
+
+       /* modeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(mImageView.mCurrentPolygon != null)
+                {
+                    mImageView.mPolygonen.remove(mImageView.mPolygonen.size() - 1);
+                    mImageView.mCurrentPolygon = null;
+                    mImageView.reDraw();
+                }
+                modeBtn.setText(changeMode());
+            }
+        });*/
 
         mImageView = findViewById(R.id.boxView2);
         mImageView.mode = "Box";
@@ -149,14 +228,11 @@ public class PickImage extends AppCompatActivity {
     }
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch(requestCode){
-            case PERMISSION_CODE: {
-                if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    getImagePath();
-                }
-                else {
-                    Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
-                }
+        if (requestCode == PERMISSION_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                getImagePath();
+            } else {
+                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -202,6 +278,11 @@ public class PickImage extends AppCompatActivity {
                         BoxDrawingView boxDr = this.findViewById(R.id.boxView2);
                         boxDr.mBoxen.clear();
                         boxDr.mCirclen.clear();
+                        boxDr.mCurrentPolygon = null;
+                        boxDr.mPolygonen.clear();
+
+                        Circle.total = 0;
+                        Polygon.total = 0;
                         Box.total = 0;
 
                         boxDr.bitmap = rotatedBitmap;
@@ -211,7 +292,6 @@ public class PickImage extends AppCompatActivity {
                         //Picasso.get().load(imgFile).into(mImageView);
 
                     }
-                    ;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -224,7 +304,6 @@ public class PickImage extends AppCompatActivity {
         if ("content".equalsIgnoreCase(uri.getScheme())) {
             String[] projection = { "_data" };
             Cursor cursor = null;
-
             try {
                 cursor = context.getContentResolver().query(uri, projection, null, null, null);
                 assert cursor != null;
@@ -277,23 +356,6 @@ public class PickImage extends AppCompatActivity {
                 matrix, true);
         bitmap = Bitmap.createScaledBitmap(bitmap,mImageView.getWidth(), mImageView.getHeight(), true);
         return bitmap;
-    }
-
-    String changeMode()
-    {
-        if(mImageView.mode.equals("Box"))
-        {
-            mImageView.mode = "Circle";
-        }
-        else if(mImageView.mode.equals("Circle"))
-        {
-            mImageView.mode = "Oval";
-        }
-        else
-        {
-            mImageView.mode = "Box";
-        }
-        return mImageView.mode;
     }
 
     public void ShowDialog(final Bitmap bmp){
