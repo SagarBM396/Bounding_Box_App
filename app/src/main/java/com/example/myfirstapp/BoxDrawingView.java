@@ -246,8 +246,8 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
                             mCurrentPolygon = new Polygon(current);
                             mPolygonen.add(mCurrentPolygon);
                         }
-                        if(mCurrentPolygon.points.size() >= 1)
-                            mCurrentPolygon.points.add(current);
+
+                        mCurrentPolygon.points.add(current);
                         //Toast.makeText(getContext(), String.valueOf(mCurrentPolygon.points.size()), Toast.LENGTH_LONG).show();
                         invalidate();
                         break;
