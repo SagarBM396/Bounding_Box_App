@@ -22,13 +22,17 @@ import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.PopupMenu;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Spinner;
@@ -39,8 +43,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
 import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
+
+import static android.app.usage.UsageEvents.Event.NONE;
 
 public class PickImage extends AppCompatActivity {
 
@@ -49,10 +56,12 @@ public class PickImage extends AppCompatActivity {
     Button pickImagebutton;
     Button undoButton;
     Button sendButton;
+    Button trashButton;
     Spinner modeSpnr;
-    BoxDrawingView mImageView;
+    ShapeDrawingView mImageView;
     Button brt_btn;
-    Button checkButton;
+
+    String filepath = null;
 
     public static final String[] paths = {"Box", "Circle", "Oval", "Polygon"};
 
@@ -77,25 +86,77 @@ public class PickImage extends AppCompatActivity {
         sendButton = findViewById(R.id.button_send2);
         modeSpnr = findViewById(R.id.mode_spinner2);
         brt_btn = findViewById(R.id.brightness_btn2);
-        checkButton = findViewById(R.id.accept2);
-        checkButton.setVisibility(View.INVISIBLE);
-        checkButton.setClickable(false);
-        checkButton.setOnClickListener(new View.OnClickListener() {
+        trashButton = findViewById(R.id.trash2);
+
+        trashButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(mImageView.mCurrentPolygon == null)
-                    return;
-                mImageView.showDialogPoly();
-                mImageView.mPolygonen.set(mImageView.mPolygonen.size()-1, mImageView.mCurrentPolygon);
-                mImageView.mCurrentPolygon = null;
-                Polygon.total += 1;
+                PopupMenu menu = new PopupMenu(getApplicationContext(), view);
+                int i = 1;
+                for(Box box : mImageView.mBoxen)
+                {
+                    menu.getMenu().add(1, i, NONE, box.label);
+                    i++;
+                }
+                i = 1;
+                for(Circle circle : mImageView.mCirclen)
+                {
+                    menu.getMenu().add(2, i, NONE, circle.label);
+                    i++;
+                }
+                i = 1;
+                for(Polygon poly : mImageView.mPolygonen)
+                {
+                    menu.getMenu().add(3, i, NONE, poly.label);
+                    i++;
+                }
+                menu.show();
+
+                menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem menuItem) {
+                        int id = menuItem.getItemId();
+                        int group = menuItem.getGroupId();
+                        int i = 1;
+
+                        if(group == 3 && mImageView.mPolygonen.get(id - 1).label.equals(""))
+                            return false;
+
+                        try {
+                            if(group == 1)
+                            {
+                                mImageView.mBoxen.remove(id - 1);
+                                mImageView.removeFromOrder('b', id);
+                            }
+                            if(group == 2)
+                            {
+                                mImageView.mCirclen.remove(id - 1);
+                                mImageView.removeFromOrder('c', id);
+                            }
+                            if(group == 3)
+                            {
+                                mImageView.mPolygonen.remove(id - 1);
+                                mImageView.removeFromOrder('p', id);
+                            }
+                            mImageView.reDraw();
+                            return true;
+                        }
+                        catch (Exception e)
+                        {
+                            e.printStackTrace();
+                            return false;
+                        }
+                    }
+                });
             }
+
+
         });
 
         brt_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(!BoxDrawingView.backgroundSet || mImageView.bitmap == null)
+                if(!ShapeDrawingView.backgroundSet || mImageView.bitmap == null)
                 {
                     Toast.makeText(getApplicationContext(), "Background not set", Toast.LENGTH_LONG).show();
                     return;
@@ -122,30 +183,21 @@ public class PickImage extends AppCompatActivity {
                     case 0:
                         mode = "Box";
                         mImageView.mode = "Box";
-                        checkButton.setVisibility(View.INVISIBLE);
-                        checkButton.setClickable(false);
                         break;
                     case 1:
                         mode = "Circle";
                         mImageView.mode = "Circle";
-                        checkButton.setVisibility(View.INVISIBLE);
-                        checkButton.setClickable(false);
                         break;
                     case 2:
                         mode = "Oval";
                         mImageView.mode = "Oval";
-                        checkButton.setVisibility(View.INVISIBLE);
-                        checkButton.setClickable(false);
                         break;
                     case 3:
                         mode = "Polygon";
                         mImageView.mode = "Polygon";
-                        checkButton.setVisibility(View.VISIBLE);
-                        checkButton.setClickable(true);
                         break;
                     default:
                         break;
-
                 }
             }
 
@@ -176,34 +228,62 @@ public class PickImage extends AppCompatActivity {
         undoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                BoxDrawingView boxDr = findViewById(R.id.boxView2);
+                ShapeDrawingView boxDr = findViewById(R.id.boxView2);
                 boxDr.undoAction();
             }
         });
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(getApplicationContext(), "Send Button Working", Toast.LENGTH_LONG).show();
+                if(mImageView.mCurrentPolygon!=null && mImageView.mCurrentPolygon.label.equals("") )
+                {
+                    Toast.makeText(getApplicationContext(), "Finish naming the polygon first!", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if(mImageView.mCurrentCircle!=null && mImageView.mCurrentCircle.label.equals("New Circle") )
+                {
+                    Toast.makeText(getApplicationContext(), "Finish naming the Circle first!", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if(mImageView.mCurrentBox!=null && mImageView.mCurrentBox.label.equals("New Box") )
+                {
+                    Toast.makeText(getApplicationContext(), "Finish naming the box first!", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if(mImageView.bitmap != null && ShapeDrawingView.backgroundSet) {
+                    saveImage(mImageView.getBitmapFromView());
+                    //share it
+                    send();
+                }
+                else
+                    Toast.makeText(getApplicationContext(), "Set an image first!", Toast.LENGTH_LONG).show();
             }
         });
+
         pickImagebutton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED
-                    || checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
-
-                        String[] permission = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
-
-                        requestPermissions(permission, PERMISSION_CODE);
-                    } else {
-                        getImagePath();
-                    }
-                } else {
-                    getImagePath();
-                }
+                pickImageAction();
             }
         });
+        pickImageAction();
+    }
+
+    public void pickImageAction()
+    {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED
+                    || checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+
+                String[] permission = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
+
+                requestPermissions(permission, PERMISSION_CODE);
+            } else {
+                getImagePath();
+            }
+        } else {
+            getImagePath();
+        }
     }
 
     private void getImagePath()
@@ -246,6 +326,8 @@ public class PickImage extends AppCompatActivity {
                     File imgFile = new File(path);
                     if (imgFile.exists()) {
 
+                        filepath = path;
+
                         ExifInterface ei = new ExifInterface(path);
                         int orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION,
                                 ExifInterface.ORIENTATION_UNDEFINED);
@@ -271,7 +353,7 @@ public class PickImage extends AppCompatActivity {
                                 rotatedBitmap = rotateImage(bitmap, 0);
                         }
 
-                        BoxDrawingView boxDr = this.findViewById(R.id.boxView2);
+                        ShapeDrawingView boxDr = this.findViewById(R.id.boxView2);
                         boxDr.mBoxen.clear();
                         boxDr.mCirclen.clear();
                         boxDr.mCurrentPolygon = null;
@@ -282,7 +364,7 @@ public class PickImage extends AppCompatActivity {
                         Box.total = 0;
 
                         boxDr.bitmap = rotatedBitmap;
-                        BoxDrawingView.backgroundSet = true;
+                        ShapeDrawingView.backgroundSet = true;
 
                         progress = 100;
                         //Picasso.get().load(imgFile).into(mImageView);
@@ -340,7 +422,7 @@ public class PickImage extends AppCompatActivity {
         assert cursor != null;
         cursor.moveToFirst();
         String path = cursor.getString(cursor.getColumnIndex(MediaStore.Images.Media.DATA));
-        Toast.makeText(this, path, Toast.LENGTH_LONG).show();
+        //Toast.makeText(this, path, Toast.LENGTH_LONG).show();
         cursor.close();
 
         return path;
@@ -426,5 +508,43 @@ public class PickImage extends AppCompatActivity {
         canvas.drawBitmap(bmp, 0, 0, paint);
 
         return ret;
+    }
+
+    private static void saveImage(Bitmap finalBitmap) {
+
+        String root = Environment.getExternalStorageDirectory().getAbsolutePath();
+        File myDir = new File(root + "/saved_images");
+        Log.i("Directory", "==" + myDir);
+        myDir.mkdirs();
+
+        String fname = "Image-test" + ".jpg";
+        File file = new File(myDir, fname);
+        if (file.exists()) file.delete();
+        try {
+            FileOutputStream out = new FileOutputStream(file);
+            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            out.flush();
+            out.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    public void send() {
+        try {
+            File myFile = new File("/storage/emulated/0/saved_images/Image-test.jpg");
+            Log.i("Send Function", "File successfully created");
+            MimeTypeMap mime = MimeTypeMap.getSingleton();
+            String ext = myFile.getName().substring(myFile.getName().lastIndexOf(".") + 1);
+            String type = mime.getMimeTypeFromExtension(ext);
+            Intent sharingIntent = new Intent("android.intent.action.SEND");
+            sharingIntent.setType(type);
+            sharingIntent.putExtra("android.intent.extra.STREAM", Uri.parse((myFile.toString())));
+            Log.i("Send Function", "Intent set correctly");
+            startActivity(Intent.createChooser(sharingIntent, "Share using"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            //Toast.makeText(getBaseContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 }

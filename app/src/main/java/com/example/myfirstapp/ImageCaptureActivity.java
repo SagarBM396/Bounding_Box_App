@@ -3,8 +3,6 @@ package com.example.myfirstapp;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
 
 import android.Manifest;
 import android.animation.ArgbEvaluator;
@@ -14,52 +12,54 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.graphics.LightingColorFilter;
 import android.graphics.Matrix;
-import android.graphics.Paint;
+
 import androidx.exifinterface.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.SeekBar;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 
+import static android.app.usage.UsageEvents.Event.NONE;
+
 public class ImageCaptureActivity extends AppCompatActivity {
 
     Button mCaptureBtn;
-    BoxDrawingView mImageView;
+    Button trashButton;
+    ShapeDrawingView mImageView;
     Spinner modeSpnr;
     Button brt_btn;
-    Button checkButton;
     String mode;
     private final int PERMISSION_CODE = 1000;
     int progress = 128;
 
     public static final String[] paths = {"Box", "Circle", "Oval", "Polygon"};
 
-    private static final String TAG = "Button2Activity";
+    private static final String TAG = "ImageCaptureActivity";
 
     public Uri image_uri;
-    private final int IMAGE_CAPTURE_CODE = 1001;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,22 +75,71 @@ public class ImageCaptureActivity extends AppCompatActivity {
         Button sendButton = findViewById(R.id.button_send);
         brt_btn = findViewById(R.id.brightness_btn);
         modeSpnr = findViewById(R.id.mode_spinner);
-        checkButton = findViewById(R.id.accept);
-        checkButton.setVisibility(View.INVISIBLE);
-        checkButton.setClickable(false);
+        trashButton = findViewById(R.id.trash);
 
-        checkButton.setOnClickListener(new View.OnClickListener() {
+        trashButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(mImageView.mCurrentPolygon == null)
+                PopupMenu menu = new PopupMenu(getApplicationContext(), view);
+                int i = 1;
+                for(Box box : mImageView.mBoxen)
                 {
-                    return;
+                    menu.getMenu().add(1, i, NONE, box.label);
+                    i++;
                 }
-                mImageView.showDialogPoly();
-                mImageView.mPolygonen.set(mImageView.mPolygonen.size()-1, mImageView.mCurrentPolygon);
-                mImageView.mCurrentPolygon = null;
-                Polygon.total += 1;
+                i = 1;
+                for(Circle circle : mImageView.mCirclen)
+                {
+                    menu.getMenu().add(2, i, NONE, circle.label);
+                    i++;
+                }
+                i = 1;
+                for(Polygon poly : mImageView.mPolygonen)
+                {
+                    menu.getMenu().add(3, i, NONE, poly.label);
+                    i++;
+                }
+                menu.show();
+
+                menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem menuItem) {
+                        int id = menuItem.getItemId();
+                        int group = menuItem.getGroupId();
+                        int i = 1;
+
+                        if(group == 3 && mImageView.mPolygonen.get(id - 1).label.equals(""))
+                            return false;
+
+                        try {
+                            if(group == 1)
+                            {
+                                mImageView.mBoxen.remove(id - 1);
+                                mImageView.removeFromOrder('b', id);
+                            }
+                            if(group == 2)
+                            {
+                                mImageView.mCirclen.remove(id - 1);
+                                mImageView.removeFromOrder('c', id);
+                            }
+                            if(group == 3)
+                            {
+                                mImageView.mPolygonen.remove(id - 1);
+                                mImageView.removeFromOrder('p', id);
+                            }
+                            mImageView.reDraw();
+                            return true;
+                        }
+                        catch (Exception e)
+                        {
+                            e.printStackTrace();
+                            return false;
+                        }
+                    }
+                });
             }
+
+
         });
 
 
@@ -112,26 +161,18 @@ public class ImageCaptureActivity extends AppCompatActivity {
                     case 0:
                         mode = "Box";
                         mImageView.mode = "Box";
-                        checkButton.setVisibility(View.INVISIBLE);
-                        checkButton.setClickable(false);
                         break;
                     case 1:
                         mode = "Circle";
                         mImageView.mode = "Circle";
-                        checkButton.setVisibility(View.INVISIBLE);
-                        checkButton.setClickable(false);
                         break;
                     case 2:
                         mode = "Oval";
                         mImageView.mode = "Oval";
-                        checkButton.setVisibility(View.INVISIBLE);
-                        checkButton.setClickable(false);
                         break;
                     case 3:
                         mode = "Polygon";
                         mImageView.mode = "Polygon";
-                        checkButton.setVisibility(View.VISIBLE);
-                        checkButton.setClickable(true);
                         break;
                     default:
                         break;
@@ -149,7 +190,7 @@ public class ImageCaptureActivity extends AppCompatActivity {
         brt_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(!BoxDrawingView.backgroundSet || mImageView.bitmap == null)
+                if(!ShapeDrawingView.backgroundSet || mImageView.bitmap == null)
                 {
                     Toast.makeText(getApplicationContext(), "Background not set", Toast.LENGTH_LONG).show();
                     return;
@@ -161,14 +202,35 @@ public class ImageCaptureActivity extends AppCompatActivity {
         undoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                BoxDrawingView boxDr = findViewById(R.id.boxView);
+                ShapeDrawingView boxDr = findViewById(R.id.boxView);
                 boxDr.undoAction();
             }
         });
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(getApplicationContext(), "Send Button Working", Toast.LENGTH_LONG).show();
+                if(mImageView.mCurrentPolygon!=null && mImageView.mCurrentPolygon.label.equals("") )
+                {
+                    Toast.makeText(getApplicationContext(), "Finish naming the polygon first!", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if(mImageView.mCurrentCircle!=null && mImageView.mCurrentCircle.label.equals("New Circle") )
+                {
+                    Toast.makeText(getApplicationContext(), "Finish naming the Circle first!", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if(mImageView.mCurrentBox!=null && mImageView.mCurrentBox.label.equals("New Box") )
+                {
+                    Toast.makeText(getApplicationContext(), "Finish naming the box first!", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if(mImageView.bitmap != null && ShapeDrawingView.backgroundSet) {
+                    saveImage(mImageView.getBitmapFromView());
+                    //share it
+                    send();
+                }
+                else
+                    Toast.makeText(getApplicationContext(), "Set an image first!", Toast.LENGTH_LONG).show();
             }
         });
         mImageView = findViewById(R.id.boxView);
@@ -179,22 +241,29 @@ public class ImageCaptureActivity extends AppCompatActivity {
         mCaptureBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_DENIED ||
-                            checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
-
-                        String[] permission = {Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE};
-
-                        requestPermissions(permission, PERMISSION_CODE);
-                    } else {
-                        openCamera();
-                    }
-                } else {
-                    openCamera();
-                }
+                captureImageAction();
             }
         });
+        captureImageAction();
     }
+
+    public void captureImageAction()
+    {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_DENIED ||
+                    checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+
+                String[] permission = {Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE};
+
+                requestPermissions(permission, PERMISSION_CODE);
+            } else {
+                openCamera();
+            }
+        } else {
+            openCamera();
+        }
+    }
+
     private void openCamera() {
         ContentValues values = new ContentValues();
         values.put(MediaStore.Images.Media.TITLE, "New Picture");
@@ -204,6 +273,7 @@ public class ImageCaptureActivity extends AppCompatActivity {
 
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, image_uri);
+        int IMAGE_CAPTURE_CODE = 1001;
         startActivityForResult(cameraIntent, IMAGE_CAPTURE_CODE);
     }
 
@@ -224,7 +294,7 @@ public class ImageCaptureActivity extends AppCompatActivity {
         if(resultCode == RESULT_OK) {
             try {
                 Log.d(TAG, "File Uri: " + image_uri.toString());
-                BoxDrawingView boxDr =  this.findViewById(R.id.boxView);
+                ShapeDrawingView boxDr =  this.findViewById(R.id.boxView);
                 boxDr.mBoxen.clear();
                 boxDr.mCirclen.clear();
                 boxDr.mPolygonen.clear();
@@ -239,7 +309,7 @@ public class ImageCaptureActivity extends AppCompatActivity {
                 Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), image_uri);
                 bitmap = rotateImageIfRequired(getApplicationContext(), bitmap, image_uri);
                 boxDr.bitmap = bitmap;
-                BoxDrawingView.backgroundSet = true;
+                ShapeDrawingView.backgroundSet = true;
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -331,6 +401,43 @@ public class ImageCaptureActivity extends AppCompatActivity {
                 });
         popDialog.create();
         popDialog.show();
+    }
+    private static void saveImage(Bitmap finalBitmap) {
+
+        String root = Environment.getExternalStorageDirectory().getAbsolutePath();
+        File myDir = new File(root + "/saved_images");
+        Log.i("Directory", "==" + myDir);
+        myDir.mkdirs();
+
+        String fname = "Image-test" + ".jpg";
+        File file = new File(myDir, fname);
+        if (file.exists()) file.delete();
+        try {
+            FileOutputStream out = new FileOutputStream(file);
+            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            out.flush();
+            out.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    public void send() {
+        try {
+            File myFile = new File("/storage/emulated/0/saved_images/Image-test.jpg");
+            Log.i("Send Function", "File successfully created");
+            MimeTypeMap mime = MimeTypeMap.getSingleton();
+            String ext = myFile.getName().substring(myFile.getName().lastIndexOf(".") + 1);
+            String type = mime.getMimeTypeFromExtension(ext);
+            Intent sharingIntent = new Intent("android.intent.action.SEND");
+            sharingIntent.setType(type);
+            sharingIntent.putExtra("android.intent.extra.STREAM", Uri.parse((myFile.toString())));
+            Log.i("Send Function", "Intent set correctly");
+            startActivity(Intent.createChooser(sharingIntent, "Share using"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            //Toast.makeText(getBaseContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 }
 

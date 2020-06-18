@@ -32,7 +32,7 @@
 
 
 
-    <com.example.myfirstapp.BoxDrawingView
+    <com.example.myfirstapp.ShapeDrawingView
         android:id="@+id/boxView"
         android:scaleType="centerCrop"
         android:layout_width="match_parent"

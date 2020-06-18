@@ -39,8 +39,8 @@
         <Button
             android:layout_width="30dp"
             android:layout_height="wrap_content"
-            android:id="@+id/accept2"
-            android:background="@drawable/ic_check_black_24dp"
+            android:id="@+id/trash2"
+            android:background="@drawable/ic_baseline_delete_24"
             android:layout_toStartOf="@+id/brightness_btn2"/>
 
         <Button
@@ -57,7 +57,7 @@
 
 
 
-    <com.example.myfirstapp.BoxDrawingView
+    <com.example.myfirstapp.ShapeDrawingView
         android:id="@+id/boxView2"
         android:scaleType="centerInside"
         android:layout_width="match_parent"

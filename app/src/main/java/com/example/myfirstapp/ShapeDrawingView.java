@@ -2,35 +2,27 @@ package com.example.myfirstapp;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LightingColorFilter;
 import android.graphics.Paint;
 import android.graphics.PointF;
-import android.net.Uri;
-import android.provider.MediaStore;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.Toast;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView {
+public class ShapeDrawingView extends androidx.appcompat.widget.AppCompatImageView {
     private static final String TAG = "BoxDrawingView";
+
+    Canvas myCanvas;
 
     public String mode;
     public List<Character> order = new ArrayList<>();
@@ -51,11 +43,11 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
     private Paint mBackgroundPaint;
 
     // Used when creating the view in code
-    public BoxDrawingView(Context context) {
+    public ShapeDrawingView(Context context) {
         this(context, null);
     }
     // Used when inflating the view from XML
-    public BoxDrawingView(Context context, AttributeSet attrs) {
+    public ShapeDrawingView(Context context, AttributeSet attrs) {
         super(context, attrs);
         //Activity a = (Activity) context;
         //a.setContentView(R.layout.fragment_drag_and_draw);
@@ -83,10 +75,10 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
     protected void onDraw(Canvas canvas) {
         // Fill the background
         //canvas.drawPaint(mBackgroundPaint);
-        if(backgroundSet == true)
+        if(backgroundSet)
         {
             try{
-            canvas.drawBitmap(bitmap, 0, 0 , mBackgroundPaint);}
+            canvas.drawBitmap(bitmap, 0, 0, mBackgroundPaint);}
             catch(Exception e) {
                 e.printStackTrace();
                 backgroundSet = false;
@@ -134,18 +126,21 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
             PointF previous = poly.getOrigin();
             for(PointF point : poly.points)
             {
-                if(point == poly.getOrigin())
+                if(point == poly.getOrigin() && poly.points.size() <= 2)
                     continue;
                 canvas.drawLine(previous.x, previous.y, point.x, point.y, mBoxPaint);
                 previous = point;
             }
-            canvas.drawLine(previous.x, previous.y, poly.getOrigin().x, poly.getOrigin().y, mBoxPaint);
+            //canvas.drawLine(previous.x, previous.y, poly.getOrigin().x, poly.getOrigin().y, mBoxPaint);
+            if(distance(poly.getOrigin(), poly.getCurrent())<=50.0f && mCurrentPolygon!=null && mCurrentPolygon.points.size() >2)
+                canvas.drawCircle(poly.getOrigin().x, poly.getOrigin().y, 50.0f, mBoxPaint);
             text = poly.label;
             mBoxPaint.setColor(Color.RED);
             mBoxPaint.setTextSize(40);
             if(!poly.label.equals(""))
                 canvas.drawText(text, poly.getOrigin().x, poly.getOrigin().y, mBoxPaint);
         }
+        myCanvas = canvas;
 
     }
 
@@ -272,6 +267,14 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
                         if(mCurrentPolygon.points.size() == 0)
                         {
                             mCurrentPolygon.setOrigin(current);
+                        }
+                        if(distance(current, mCurrentPolygon.getOrigin()) <= 50.0f && mCurrentPolygon.points.size() >=2)
+                        {
+                            mCurrentPolygon.setCurrent(mCurrentPolygon.getOrigin());
+                            showDialogPoly();
+                            mPolygonen.set(mPolygonen.size()-1, mCurrentPolygon);
+                            mCurrentPolygon = null;
+                            Polygon.total += 1;
                         }
                         //Toast.makeText(getContext(), String.valueOf(mCurrentPolygon.points.size()), Toast.LENGTH_LONG).show();
 
@@ -411,6 +414,20 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
         showAddItemDialog(getContext(), mCurrentPolygon);
     }
 
+    public void removeFromOrder(char ch, int id)
+    {
+        int curr = 0;
+        for(int i = 0; i<order.size(); i++)
+        {
+            if(order.get(i) == ch)
+                curr++;
+            if(curr == id)
+            {
+                order.remove(i);
+                return;
+            }
+        }
+    }
 
     public void undoAction() {
         if(order.size() == 0)
@@ -475,5 +492,17 @@ public class BoxDrawingView extends androidx.appcompat.widget.AppCompatImageView
         {
             invalidate();
         }
+    public Bitmap getBitmapFromView()
+    {
+        Bitmap bitmap = Bitmap.createBitmap(this.getWidth(), this.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        this.draw(canvas);
+        return bitmap;
+    }
+
+    public float distance(PointF point1, PointF point2)
+    {
+        return (float)Math.sqrt(Math.pow(point1.x - point2.x, 2) + Math.pow(point1.y - point2.y, 2));
+    }
 }
 

@@ -1,11 +1,6 @@
 package com.example.myfirstapp;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,10 +8,6 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
-
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 
 public class DragAndDrawFragment extends Fragment implements View.OnClickListener {
 
@@ -67,7 +58,7 @@ public class DragAndDrawFragment extends Fragment implements View.OnClickListene
         switch (v.getId()) {
 
             case R.id.undo_button:
-                BoxDrawingView boxDr =  getActivity().findViewById(R.id.boxView);
+                ShapeDrawingView boxDr =  getActivity().findViewById(R.id.boxView);
                 boxDr.undoAction();
                 break;
 
