@@ -32,6 +32,7 @@ public class ShapeDrawingView extends androidx.appcompat.widget.AppCompatImageVi
 
     public static boolean backgroundSet = false;
     public Bitmap bitmap;
+    public Bitmap originalBitmap;
     public static boolean validStringAdd = true;
     public Box mCurrentBox;
     public List<Box> mBoxen = new ArrayList<>();
@@ -78,7 +79,7 @@ public class ShapeDrawingView extends androidx.appcompat.widget.AppCompatImageVi
         if(backgroundSet)
         {
             try{
-            canvas.drawBitmap(bitmap, 0, 0, mBackgroundPaint);}
+            canvas.drawBitmap(bitmap, 0, 0, mBackgroundPaint); }
             catch(Exception e) {
                 e.printStackTrace();
                 backgroundSet = false;
@@ -132,7 +133,7 @@ public class ShapeDrawingView extends androidx.appcompat.widget.AppCompatImageVi
                 previous = point;
             }
             //canvas.drawLine(previous.x, previous.y, poly.getOrigin().x, poly.getOrigin().y, mBoxPaint);
-            if(distance(poly.getOrigin(), poly.getCurrent())<=50.0f && mCurrentPolygon!=null && mCurrentPolygon.points.size() >2)
+            if(distance(poly.getOrigin(), poly.getCurrent())<=50.0f && mCurrentPolygon!=null && mCurrentPolygon.points.size() >2 && mCurrentPolygon == poly)
                 canvas.drawCircle(poly.getOrigin().x, poly.getOrigin().y, 50.0f, mBoxPaint);
             text = poly.label;
             mBoxPaint.setColor(Color.RED);

@@ -58,6 +58,7 @@ public class PickImage extends AppCompatActivity {
     Button sendButton;
     Button trashButton;
     Spinner modeSpnr;
+    Button contrastButton;
     ShapeDrawingView mImageView;
     Button brt_btn;
 
@@ -65,7 +66,8 @@ public class PickImage extends AppCompatActivity {
 
     public static final String[] paths = {"Box", "Circle", "Oval", "Polygon"};
 
-    int progress = 128;
+    int brightnessProgress = 128;
+    int contrastProgress = 128;
 
     private static final String TAG = "BoxDrawingView";
     private final int PERMISSION_CODE = 1000;
@@ -79,13 +81,15 @@ public class PickImage extends AppCompatActivity {
         mode = "Box";
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
-        progress = 128;
+        brightnessProgress = 128;
+        contrastProgress = 128;
 
         pickImagebutton = findViewById(R.id.pick_image_btn);
         undoButton = findViewById(R.id.undo_button2);
         sendButton = findViewById(R.id.button_send2);
         modeSpnr = findViewById(R.id.mode_spinner2);
         brt_btn = findViewById(R.id.brightness_btn2);
+        contrastButton = findViewById(R.id.contrast_btn2);
         trashButton = findViewById(R.id.trash2);
 
         trashButton.setOnClickListener(new View.OnClickListener() {
@@ -161,7 +165,19 @@ public class PickImage extends AppCompatActivity {
                     Toast.makeText(getApplicationContext(), "Background not set", Toast.LENGTH_LONG).show();
                     return;
                 }
-                ShowDialog();
+                ShowDialog(mImageView.originalBitmap, "Brightness");
+            }
+        });
+
+        contrastButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(!ShapeDrawingView.backgroundSet || mImageView.bitmap == null)
+                {
+                    Toast.makeText(getApplicationContext(), "Background not set", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                ShowDialog(mImageView.originalBitmap, "Contrast");
             }
         });
 
@@ -289,7 +305,7 @@ public class PickImage extends AppCompatActivity {
     private void getImagePath()
     {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("*/*");                                      //use "image/jpeg" for jpg images only
+        intent.setType("image/*");                                      //use "image/jpeg" for jpg images only
         intent.addCategory(Intent.CATEGORY_OPENABLE);
 
         try {
@@ -364,9 +380,11 @@ public class PickImage extends AppCompatActivity {
                         Box.total = 0;
 
                         boxDr.bitmap = rotatedBitmap;
+                        boxDr.originalBitmap = rotatedBitmap;
                         ShapeDrawingView.backgroundSet = true;
 
-                        progress = 100;
+                        brightnessProgress = 128;
+                        contrastProgress = 128;
                         //Picasso.get().load(imgFile).into(mImageView);
 
                     }
@@ -436,47 +454,64 @@ public class PickImage extends AppCompatActivity {
         return bitmap;
     }
 
-    public void ShowDialog(){
+    public void ShowDialog(final Bitmap bmp, final String mode){
         //Toast.makeText(this, "Reached ShowDialog", Toast.LENGTH_LONG).show();
         final AlertDialog.Builder popDialog = new AlertDialog.Builder(this);
         final SeekBar seek = new SeekBar(this);
         seek.setMax(256);
         seek.setKeyProgressIncrement(1);
-        seek.setProgress(progress);
+        if(mode.equals("Brightness"))
+            seek.setProgress(brightnessProgress);
+        else
+            seek.setProgress(contrastProgress);
 
         popDialog.setIcon(R.drawable.ic_brightness_high_black_24dp);
-        popDialog.setTitle("Please Select Into Your Desired Brightness ");
+        if(mode.equals("Brightness"))
+            popDialog.setTitle("Please Select Into Your Desired Brightness");
+        else
+            popDialog.setTitle("Please Select Into Your Desired Contrast");
         popDialog.setView(seek);
 
 
-        seek.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+        seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 
 
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 
                 //mImageView.reDraw(changeBitmapContrastBrightness(bmp, (float) progress / 100f, 1));
 
-                ArgbEvaluator evaluator = new ArgbEvaluator();
+                if(mode.equals("Brightness"))
+                {
+                    ArgbEvaluator evaluator = new ArgbEvaluator();
 
-                float fraction = progress / 256.0F;
+                    float fraction = progress / 256.0F;
 
-                int mul = (int) evaluator.evaluate(fraction, 0xFF7F7F7F, 0xFFFFFFFF);
-                int add = (int) evaluator.evaluate(fraction, 0x00000000, 0x00222222);
-                mImageView.reDraw(new LightingColorFilter(mul, add));
+                    int mul = (int) evaluator.evaluate(fraction, 0xFF7F7F7F, 0xFFFFFFFF);
+                    int add = (int) evaluator.evaluate(fraction, 0x00000000, 0x00222222);
+                    mImageView.reDraw(new LightingColorFilter(mul, add));
+                }
+
+                else
+                {
+                    mImageView.reDraw(changeBitmapContrastBrightness(bmp, (float) progress / 128f, 1));
+                }
 
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
 
-                mImageView.invalidate();
+                mImageView.reDraw();
 
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                mImageView.invalidate();
-                progress = seekBar.getProgress();
+                mImageView.reDraw();
+                if(mode.equals("Brightness"))
+                    brightnessProgress = seekBar.getProgress();
+                else
+                    contrastProgress = seekBar.getProgress();
             }
         });
         // Button OK

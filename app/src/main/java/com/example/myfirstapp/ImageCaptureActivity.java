@@ -15,10 +15,16 @@ import android.graphics.Bitmap;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Canvas;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.LightingColorFilter;
 import android.graphics.Matrix;
 
+import androidx.core.content.ContextCompat;
 import androidx.exifinterface.media.ExifInterface;
+
+import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -27,10 +33,12 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.SeekBar;
 import android.widget.Spinner;
@@ -48,12 +56,14 @@ public class ImageCaptureActivity extends AppCompatActivity {
 
     Button mCaptureBtn;
     Button trashButton;
+    Button contrastButton;
     ShapeDrawingView mImageView;
     Spinner modeSpnr;
     Button brt_btn;
     String mode;
     private final int PERMISSION_CODE = 1000;
-    int progress = 128;
+    int brightnessProgress = 128;
+    int contrastProgress = 128;
 
     public static final String[] paths = {"Box", "Circle", "Oval", "Polygon"};
 
@@ -69,13 +79,15 @@ public class ImageCaptureActivity extends AppCompatActivity {
         mode = "Box";
         //setContentView(new CustomView(this));
 
-        progress = 128;
+        brightnessProgress = 128;
+        contrastProgress = 128;
 
         Button undoButton = findViewById(R.id.undo_button);
         Button sendButton = findViewById(R.id.button_send);
         brt_btn = findViewById(R.id.brightness_btn);
         modeSpnr = findViewById(R.id.mode_spinner);
         trashButton = findViewById(R.id.trash);
+        contrastButton = findViewById(R.id.contrast_btn);
 
         trashButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -195,7 +207,19 @@ public class ImageCaptureActivity extends AppCompatActivity {
                     Toast.makeText(getApplicationContext(), "Background not set", Toast.LENGTH_LONG).show();
                     return;
                 }
-                ShowDialog(mImageView.bitmap);
+                ShowDialog(mImageView.originalBitmap, "Brightness");
+            }
+        });
+
+        contrastButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(!ShapeDrawingView.backgroundSet || mImageView.bitmap == null)
+                {
+                    Toast.makeText(getApplicationContext(), "Background not set", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                ShowDialog(mImageView.originalBitmap, "Contrast");
             }
         });
 
@@ -309,7 +333,11 @@ public class ImageCaptureActivity extends AppCompatActivity {
                 Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), image_uri);
                 bitmap = rotateImageIfRequired(getApplicationContext(), bitmap, image_uri);
                 boxDr.bitmap = bitmap;
+                boxDr.originalBitmap = bitmap;
                 ShapeDrawingView.backgroundSet = true;
+
+                contrastProgress = 128;
+                brightnessProgress = 128;
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -349,16 +377,22 @@ public class ImageCaptureActivity extends AppCompatActivity {
         }
     }
 
-    public void ShowDialog(final Bitmap bmp){
+    public void ShowDialog(final Bitmap bmp, final String mode){
         //Toast.makeText(this, "Reached ShowDialog", Toast.LENGTH_LONG).show();
         final AlertDialog.Builder popDialog = new AlertDialog.Builder(this);
         final SeekBar seek = new SeekBar(this);
         seek.setMax(256);
         seek.setKeyProgressIncrement(1);
-        seek.setProgress(progress);
+        if(mode.equals("Brightness"))
+            seek.setProgress(brightnessProgress);
+        else
+            seek.setProgress(contrastProgress);
 
         popDialog.setIcon(R.drawable.ic_brightness_high_black_24dp);
-        popDialog.setTitle("Please Select Into Your Desired Brightness ");
+        if(mode.equals("Brightness"))
+            popDialog.setTitle("Please Select Into Your Desired Brightness");
+        else
+            popDialog.setTitle("Please Select Into Your Desired Contrast");
         popDialog.setView(seek);
 
 
@@ -369,27 +403,38 @@ public class ImageCaptureActivity extends AppCompatActivity {
 
                 //mImageView.reDraw(changeBitmapContrastBrightness(bmp, (float) progress / 100f, 1));
 
-                ArgbEvaluator evaluator = new ArgbEvaluator();
+                if(mode.equals("Brightness"))
+                {
+                    ArgbEvaluator evaluator = new ArgbEvaluator();
 
-                float fraction = progress / 256.0F;
+                    float fraction = progress / 256.0F;
 
-                int mul = (int) evaluator.evaluate(fraction, 0xFF7F7F7F, 0xFFFFFFFF);
-                int add = (int) evaluator.evaluate(fraction, 0x00000000, 0x00222222);
-                mImageView.reDraw(new LightingColorFilter(mul, add));
+                    int mul = (int) evaluator.evaluate(fraction, 0xFF7F7F7F, 0xFFFFFFFF);
+                    int add = (int) evaluator.evaluate(fraction, 0x00000000, 0x00222222);
+                    mImageView.reDraw(new LightingColorFilter(mul, add));
+                }
+
+                else
+                {
+                    mImageView.reDraw(changeBitmapContrastBrightness(bmp, (float) progress / 128f, 1));
+                }
 
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
 
-                mImageView.invalidate();
+                mImageView.reDraw();
 
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                mImageView.invalidate();
-                progress = seekBar.getProgress();
+                mImageView.reDraw();
+                if(mode.equals("Brightness"))
+                    brightnessProgress = seekBar.getProgress();
+                else
+                    contrastProgress = seekBar.getProgress();
             }
         });
         // Button OK
@@ -422,6 +467,27 @@ public class ImageCaptureActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
+    public static Bitmap changeBitmapContrastBrightness(Bitmap bmp, float contrast, float brightness) {
+        ColorMatrix cm = new ColorMatrix(new float[]
+                {
+                        contrast, 0, 0, 0, brightness,
+                        0, contrast, 0, 0, brightness,
+                        0, 0, contrast, 0, brightness,
+                        0, 0, 0, 1, 0
+                });
+
+        Bitmap ret = Bitmap.createBitmap(bmp.getWidth(), bmp.getHeight(), bmp.getConfig());
+
+        Canvas canvas = new Canvas(ret);
+
+        Paint paint = new Paint();
+        paint.setColorFilter(new ColorMatrixColorFilter(cm));
+        canvas.drawBitmap(bmp, 0, 0, paint);
+
+        return ret;
+    }
+
     public void send() {
         try {
             File myFile = new File("/storage/emulated/0/saved_images/Image-test.jpg");
